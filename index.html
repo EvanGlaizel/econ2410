@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Macro Treadmill Quiz</title>
+<style>
+:root{--bg:#eef2f6;--card:#fff;--ink:#14202b;--mute:#5b6b7a;--line:#d3dce5;--acc:#2a5bd7;--ok:#1e7b4f;--okbg:#dff3e8;--bad:#b3261e;--badbg:#fbe3e1}
+@media(prefers-color-scheme:dark){:root{--bg:#0f161d;--card:#18222c;--ink:#e8eef4;--mute:#93a3b3;--line:#2b3946;--acc:#7ea2ff;--ok:#5fd39a;--okbg:#123626;--bad:#ff8a80;--badbg:#3a1a18}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.45 "Avenir Next",Avenir,"Segoe UI",system-ui,sans-serif}
+body{min-height:100vh;padding:max(14px,env(safe-area-inset-top)) 14px max(20px,env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
+h1{font-size:20px;margin:4px 0 10px;font-weight:700}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+.chip{flex:none;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:9px 14px;font:inherit;font-size:15px}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.bar{height:6px;background:var(--line);border-radius:3px;margin:12px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .25s}
+.meta{display:flex;justify-content:space-between;color:var(--mute);font-size:14px;margin-bottom:12px}
+.q{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;font-size:19px;font-weight:600;line-height:1.4}
+.tag{display:inline-block;font-size:13px;font-weight:600;color:var(--acc);margin-bottom:6px}
+.opts{display:grid;gap:10px;margin-top:12px}
+.opt{text-align:left;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:15px 16px;font:inherit;min-height:56px}
+.opt:active{transform:scale(.99)}
+.opt.ok{border-color:var(--ok);background:var(--okbg)}
+.opt.no{border-color:var(--bad);background:var(--badbg)}
+.opt:disabled{opacity:1;color:var(--ink)}
+.why{margin-top:12px;border-left:4px solid var(--acc);padding:10px 14px;background:var(--card);border-radius:0 10px 10px 0;font-size:16px}
+.why b.g{color:var(--ok)}.why b.r{color:var(--bad)}
+.btn{display:block;width:100%;margin-top:14px;border:0;border-radius:12px;background:var(--acc);color:#fff;font:inherit;font-weight:700;padding:16px}
+.btn.alt{background:var(--card);color:var(--ink);border:1.5px solid var(--line)}
+.done{text-align:center;padding:30px 10px}.done big{display:block;font-size:48px;font-weight:800}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+</style>
+</head>
+<body>
+<h1>Macro treadmill quiz</h1>
+<div class="chips" id="chips"></div>
+<div class="bar"><i id="bar"></i></div>
+<div class="meta"><span id="pos"></span><span id="score"></span></div>
+<main id="main"></main>
+<script>
+// Question format: [chapter, question, [options], index of correct option, explanation]
+// To add more, append rows to Q below.
+const Q=[
+// ---------- Chapter 2 ----------
+[2,"A steel firm sells $100 of steel to a car firm. The car firm sells cars for $200. What is GDP?",["$300","$200","$100","$250"],1,"Only final goods count. Steel is an intermediate good. Value added: $100 + $100 = $200."],
+[2,"Delta Air Lines buys a new jet from Airbus (foreign) for $200 million. Effect on US GDP?",["+$200 million","−$200 million","No effect","+$200 million, but only if Airbus has a US plant"],2,"Investment rises $200M, imports rise $200M (subtracted). Net zero. GDP counts production in the US, not purchases."],
+[2,"Delta sells one of its existing jets to a private buyer for $100 million. Effect on current-year GDP?",["+$100 million","No effect","+$100 million only if the buyer is foreign","−$100 million"],1,"A used jet was produced in an earlier year. Resale is a transfer of an existing asset, not new production. (Any broker's commission would count.)"],
+[2,"Nominal GDP grows 5% and the GDP deflator rises 3%. Real GDP grew roughly:",["8%","5%","2%","3%"],2,"Nominal growth ≈ real growth + inflation, so real ≈ 5% − 3% = 2%."],
+[2,"Under chained-dollar real GDP, what happens when the base year is changed?",["Levels of real GDP change; growth rates stay the same","Growth rates and levels both change","Only nominal GDP changes","Nothing changes"],0,"Chaining uses year-to-year growth rates, so growth is unaffected. Real GDP equals nominal GDP only in the base year, so levels shift. The old fixed-base method rewrote history."],
+[2,"If every unemployed person gives up searching, the unemployment rate…",["Rises","Stays the same","Falls (toward zero) and the participation rate falls","Falls but participation stays the same"],2,"Discouraged workers leave the labor force. Unemployment rate U/L drops, and so does participation. High unemployment usually comes with lower participation."],
+[2,"In one month both employment and unemployment increase. What can you conclude?",["The unemployment rate must have risen","The labor force grew","The economy is in recession","Participation fell"],1,"L = N + U, so L rose. People entered the labor force. The unemployment rate could go either way."],
+[2,"Oil prices double and the US imports more oil than it produces. Compared with the GDP deflator, the CPI will…",["Rise by less","Rise by more","Rise by exactly the same","Fall"],1,"The CPI prices what consumers buy, including imports. The deflator prices what the US produces. 1979-80 is the textbook example."],
+[2,"Okun's law: if annual growth is 1% (below the roughly 2% needed to hold unemployment steady), unemployment tends to…",["Fall","Stay constant","Rise","Fall only if prices fall"],2,"About 2% annual growth keeps unemployment constant because the labor force and productivity both grow. Below that, unemployment rises. Slope ≈ −0.3."],
+[2,"The Phillips curve is a relation between:",["The price level and the unemployment level","Inflation and output growth","Unemployment and inflation (lower unemployment tends to go with higher inflation)","Output growth and the change in unemployment"],2,"Option 4 is Okun's law. Trick: it is inflation (rate), not the price level."],
+[2,"Prices rise 4% and wages rise 6%. Real wages rise by about:",["10%","6%","4%","2%"],3,"Real wage growth ≈ wage growth − price growth = 2%. The text points out there is no 'pure inflation' where everything rises proportionally."],
+[2,"Which time horizon has output determined mainly by the capital stock, technology, and labor force?",["Short run","Medium run","Long run","Both short and long run"],1,"Short run: demand. Medium run: supply factors taken as given. Long run: education, saving, innovation, and government quality determine those supply factors."],
+// ---------- Chapter 3 ----------
+[3,"Which is NOT part of G in GDP?",["Federal purchase of fighter jets","Salaries of public school teachers","Social Security payments","A city buying road repairs"],2,"Government transfers (Social Security, Medicare) and interest on the debt are not purchases of goods and services."],
+[3,"Is inventory investment part of demand Z?",["Yes, always","No. Z = C + I + G (+ X − IM). Production = sales + inventory investment","Only when positive","Only for durable goods"],1,"Inventory investment is production minus sales, so it is not demand."],
+[3,"c₁ = 0.8 and c₀ rises by $10 billion. Equilibrium output rises by:",["$10 billion","$8 billion","$40 billion","$50 billion"],3,"Multiplier = 1/(1−0.8) = 5, so 5 × 10 = $50 billion."],
+[3,"G and T both rise by $1 (starting from balance). Output changes by:",["Zero","Exactly $1 (the balanced budget multiplier is 1)","1/(1−c₁)","−c₁"],1,"ΔY = [1/(1−c₁)](ΔG − c₁ΔT) = (1−c₁)/(1−c₁) = 1. Not neutral!"],
+[3,"Which has the larger effect on output: cutting G by $1 or raising T by $1?",["Same effect","Raising T","Cutting G","Depends on whether the budget is balanced"],2,"Cutting G removes $1 of demand. Raising T only reduces demand by c₁ (< 1), since part of the tax comes out of saving."],
+[3,"Consumers decide to save more at every income level (c₀ falls); I, G, T are fixed. In equilibrium, total saving…",["Rises","Falls","Is unchanged, but output falls","Is unchanged and output is unchanged"],2,"The paradox of saving. Since I = S + (T − G) and I, T, G are fixed, saving cannot change. Income falls enough to offset the attempt to save more."],
+[3,"In the Chapter 3 model, which are endogenous?",["I, G, T","C and Y","Only G","c₀ and c₁"],1,"I, G, T are taken as given (exogenous). C responds to Y − T, and Y adjusts to demand."],
+[3,"The multiplier effect arises because:",["Firms hold inventories","Income = production, so higher demand raises income, which raises consumption again","The government borrows more","Prices rise after demand rises"],1,"Demand → production → income → demand… It is a geometric series 1 + c₁ + c₁² + … = 1/(1−c₁)."],
+[3,"If c₁ were exactly 1, what happens to the multiplier formula?",["It equals 1","It equals 0","It blows up (division by zero). The series never converges","It becomes negative"],2,"With c₁ < 1 the series converges. c₁ ≥ 1 would mean each round is at least as big as the last."],
+[3,"Why is instant adjustment to a new equilibrium unrealistic?",["Taxes are slow to collect","Firms can use inventories first, and consumers adjust spending slowly to income","Prices rise first","The multiplier takes time to calculate"],1,"The formal model assumes instant adjustment. In reality, production and consumption lag demand and income."],
+[3,"Taxes depend on income: T = t₀ + t₁Y. Compared with fixed T, the multiplier is:",["Larger","Smaller (an automatic stabilizer)","Unchanged","Undefined"],1,"The multiplier becomes 1/(1 − c₁ + c₁t₁). Higher t₁ means a smaller multiplier, so shocks to autonomous spending move output less."],
+[3,"T is defined as taxes minus transfers. A rise in transfers financed by borrowing acts like:",["A tax increase","A tax cut","A rise in G","Nothing"],1,"Lower T raises disposable income and consumption. Unlike G, transfers are not demand directly, they work through consumption (by c₁)."],
+// ---------- Chapter 4 ----------
+[4,"Money demand $Y·L(i) rises when:",["Nominal income rises or the interest rate falls","Nominal income falls or the interest rate falls","Real income rises, whatever prices do","The interest rate rises"],0,"More transactions need more money. A lower interest rate lowers the opportunity cost of holding money."],
+[4,"Real income is unchanged but all prices double. Money demand:",["Is unchanged","Doubles","Halves","Rises by less than double"],1,"Money demand is proportional to nominal income. People need twice as many dollars for the same basket."],
+[4,"A one-year bond pays $100 next year. Its price today falls from $95 to $90. Its interest rate:",["Falls","Rises","Is unchanged","Is undefined"],1,"i = (100 − P)/P. Lower bond price means higher interest rate, inversely."],
+[4,"The central bank buys bonds (expansionary open market operation). Effects:",["Bond price up, interest rate down, money supply up","Bond price down, interest rate up, money supply up","Bond price up, interest rate up, money supply down","Bond price down, interest rate down, money supply up"],0,"Buying bonds raises demand for them, raising their price and lowering the yield. The central bank pays with newly created money."],
+[4,"An open market purchase changes the central bank's balance sheet by:",["Raising assets only","Raising liabilities only","Raising assets and liabilities by the same amount","Leaving both unchanged"],2,"Assets: bonds up. Liabilities: money up. Both by $1 million in the textbook example."],
+[4,"With money supply fixed, nominal income rises. The interest rate:",["Falls","Rises","Is unchanged","Falls then rises"],1,"Money demand shifts right, so a higher interest rate is needed to clear the money market."],
+[4,"When the public holds no currency, demand for central bank money equals:",["$Y·L(i)","θ × $Y·L(i) (reserve ratio times money demand)","Reserves minus deposits","Checkable deposits only"],1,"Banks hold reserves θ per dollar of deposits, and deposits equal money demand."],
+[4,"The federal funds rate is the interest rate on:",["10-year Treasuries","Mortgage loans","The market for bank reserves","Checkable deposits"],2,"The Fed controls it by changing the supply of central bank money H."],
+[4,"At i = 0 the central bank raises the money supply. Which is true?",["The interest rate becomes negative","Nothing changes in the economy","The interest rate stays 0, and deposits and reserves rise","The interest rate rises"],2,"Liquidity trap: money and bonds both pay zero, so people and banks are indifferent and willingly hold more of either."],
+[4,"Why does money demand become horizontal at i = 0?",["Money no longer is used for transactions","People hold enough for transactions and are indifferent between money and bonds","The central bank stops supplying money","Bonds pay a negative return"],1,"Both pay zero. Beyond the transactions need, they don't care how the rest of wealth is split."],
+[4,"Which is a flow variable?",["Financial wealth","The stock of bonds","Income","The money supply"],2,"Income and saving are flows (per period). Wealth is a stock. 'Money' ≠ income ≠ wealth."],
+[4,"A news report says 'The Fed raised the interest rate.' In terms of the model, the Fed:",["Increased the money supply","Decreased the money supply","Changed reserve requirements only","Sold currency to foreigners"],1,"A higher interest rate comes from a lower supply of central bank money, via open market sales."],
+// ---------- Chapter 5 ----------
+[5,"The IS curve slopes downward because:",["Higher i lowers investment, so lowers demand and output via the multiplier","Higher i raises saving","Higher output lowers investment","Higher i raises taxes"],0,"At a higher interest rate, equilibrium output is lower. Output enters investment with a positive sign."],
+[5,"The LM curve in this book is horizontal because:",["Money demand is flat","The central bank sets the interest rate and adjusts the money supply","Prices are fixed","Output is fixed"],1,"The traditional upward-sloping LM assumed a fixed money stock. Modern central banks target the rate."],
+[5,"Taxes rise (rate fixed by the central bank). Which is correct?",["IS shifts left, LM doesn't shift, i unchanged, Y falls","IS shifts left, LM shifts up, i rises","IS shifts right, Y rises","LM shifts down, Y falls"],0,"The economy moves along LM, with the same i and lower Y. The shift of IS is a shift, the movement along LM is a movement."],
+[5,"A monetary expansion (lower i) causes:",["IS to shift right","LM to shift down, with a movement down along IS","IS to shift left","LM to shift up"],1,"IS does not shift as the interest rate is a variable on its axis. Both I and C rise (via Y)."],
+[5,"Government spending rises and the central bank holds i fixed. Investment:",["Falls (crowding out)","Rises, since output rises","Is unchanged","Falls only if taxes also rise"],1,"I(Y, i): Y rises, i unchanged, so I rises. No crowding out here as the central bank holds the rate."],
+[5,"Fiscal contraction plus monetary expansion (Clinton-Greenspan). Outcome:",["Output falls, deficit falls","Output unchanged, deficit falls, investment rises","Output rises, deficit rises","Investment falls"],1,"IS shifts left, LM shifts down, so Y stays put. Lower i raises investment. The deficit falls."],
+[5,"At the zero lower bound, which policy must do the work in a recession?",["Monetary policy","Fiscal policy","Neither works","Both are equally effective"],1,"With i = 0, the LM cannot shift down further. Fiscal policy shifts IS right."],
+[5,"Along the horizontal LM curve, as output rises, the central bank must:",["Keep real money supply constant","Increase real money supply","Decrease real money supply","Increase the interest rate"],1,"M/P = Y·L(i). With i fixed and Y higher, real money demand rises, and supply must be raised to keep i fixed."],
+[5,"Per the empirical evidence, after the Fed raises the funds rate, output is hit hardest after about:",["1 quarter","8 quarters","6 years","It is never affected"],1,"Monetary policy works with long lags. Retail sales bottom out earlier (about 5 quarters). The price level barely moves for about 6 quarters."],
+[5,"Why does the price-level result matter for IS-LM?",["It proves the model is wrong","It supports the short-run assumption that prices are fixed","It shows output doesn't respond","It shows i has no effect"],1,"Prices change little for roughly 6 quarters, so IS-LM is a decent short-run model but gets less reliable in the medium run."],
+[5,"Deficit reduction with the interest rate unchanged. Investment:",["Rises, since more saving is available","Falls, since output falls","Is unchanged","Rises since T − G rises"],1,"I = S + (T − G). Private saving falls by more than public saving rises, because income falls. Whether I rises depends on monetary policy's response."],
+[5,"Consumer confidence rises (c₀ up) with the interest rate fixed. Which is correct?",["LM shifts up","IS shifts right","IS shifts left","Both curves shift"],1,"Higher autonomous spending at the same i means higher equilibrium output, so IS shifts right."],
+// ---------- Chapter 6 ----------
+[6,"Nominal rate 10%, expected inflation 5%. The real rate is about:",["15%","5% (exactly 4.8% by the exact formula)","50%","0%"],1,"r ≈ i − πᵉ. The exact formula: (1.10/1.05) − 1 ≈ 4.8%."],
+[6,"Nominal rate 10% and expected inflation 10%. The real rate is about:",["20%","10%","0%","−10%"],2,"You repay more dollars but each is worth 10% less. The real cost is about zero."],
+[6,"The ex-post real interest rate is:",["i − expected inflation","i − actual (realized) inflation","The nominal policy rate","i + risk premium"],1,"Ex-ante uses expected inflation. Ex-post uses what actually happened."],
+[6,"With a zero lower bound on i, the lowest real policy rate is:",["0","−πᵉ","−i","πᵉ"],1,"r = i − πᵉ ≥ 0 − πᵉ. With low expected inflation, the ZLB is much more binding."],
+[6,"A riskless bond pays i. A risky bond has default probability p (nothing is paid on default). For risk-neutral investors, the premium x is about:",["p","p²","1/p","i·p"],0,"x = (1+i)p/(1−p) ≈ p for small p. Risk-averse investors ask for even more."],
+[6,"A bank has assets 100, liabilities 80. Its capital ratio and leverage ratio:",["80% and 1.25","20% and 5","5 and 20%","20% and 20"],1,"Capital = 20. Capital ratio = 20/100 = 20%. Leverage = assets/capital = 5."],
+[6,"Higher leverage means:",["Lower expected profit per unit of capital, lower risk","Higher expected profit per unit of capital, higher risk of insolvency","Lower profit, higher risk","Higher profit, no change in risk"],1,"Leverage 5 gave 9% on capital, leverage 10 gave 14% in the text. But assets falling by 10 is now enough to wipe out all capital."],
+[6,"Bank (assets 100, liabilities 80) sees assets fall to 90. Leverage is now:",["5","9","10","8"],1,"Capital = 90 − 80 = 10, so leverage = 90/10 = 9. To restore the ratio the bank may call in loans, so lending falls sharply."],
+[6,"Banks are most vulnerable to a run because:",["Assets are liquid and liabilities are illiquid","Assets are illiquid and liabilities are liquid","They hold too much capital","Deposits are long-term"],1,"Loans are hard to sell quickly except at fire-sale prices. Deposits can be withdrawn on demand."],
+[6,"Which can cause a run on a bank that is actually solvent?",["Nothing, only insolvent banks face runs","Depositors fear losses (even without basis) and withdraw, forcing fire sales","The central bank lowers rates","Deposit insurance"],1,"Runs can be self-fulfilling: fire sales push a solvent bank into insolvency."],
+[6,"Why wasn't deposit insurance enough in 2008?",["It had been abolished","Banks and SIVs relied heavily on uninsured wholesale funding, which ran","Depositors ignored it","It covered only currency"],1,"Insurance (raised from $100k to $250k in 2008) protects depositors, but not short-term investors who funded banks."],
+[6,"In the extended model IS is Y = C + I(Y, r + x) + G and LM is r = r̄. A rise in x:",["Shifts LM up","Shifts IS left","Shifts IS right","Shifts LM down"],1,"The borrowing rate r + x rises at the same policy rate, so demand and output fall. The central bank can offset by lowering r (if not at the ZLB)."],
+[6,"What did the TARP end up doing?",["Bought toxic assets at fixed prices","Injected capital into banks (buying shares) after the asset-purchase plan proved too hard","Raised deposit insurance","Cut the federal funds rate"],1,"Valuing the complex assets was too hard. Capital injections lowered leverage. (Banks later repaid it.)"]
+];
+
+// --- app ---
+const $=id=>document.getElementById(id);
+let ch="all",deck=[],i=0,right=0,missed=[],locked=false;
+const shuffle=a=>{for(let k=a.length-1;k>0;k--){const j=Math.random()*(k+1)|0;[a[k],a[j]]=[a[j],a[k]]}return a};
+function chips(){
+  const c=[["all","All"],...[2,3,4,5,6].map(n=>[n,"Ch "+n])];
+  $("chips").innerHTML=c.map(([v,l])=>`<button class="chip ${String(ch)===String(v)?"on":""}" data-v="${v}">${l}</button>`).join("");
+  $("chips").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{ch=b.dataset.v;start()});
+}
+function start(list){
+  deck=shuffle((list||Q.filter(q=>ch==="all"||q[0]==ch)).slice());
+  i=0;right=0;missed=[];chips();show();
+}
+function show(){
+  if(i>=deck.length)return finish();
+  locked=false;
+  const [c,q,o,a,w]=deck[i];
+  const order=shuffle(o.map((t,k)=>[t,k===a]));
+  $("pos").textContent=`Question ${i+1} of ${deck.length}`;
+  $("score").textContent=`${right} correct`;
+  $("bar").style.width=(i/deck.length*100)+"%";
+  $("main").innerHTML=`<div class="q"><span class="tag">Chapter ${c}</span><br>${q}</div><div class="opts">${order.map((x,k)=>`<button class="opt" data-k="${k}">${x[0]}</button>`).join("")}</div><div id="fb"></div>`;
+  document.querySelectorAll(".opt").forEach(b=>b.onclick=()=>pick(+b.dataset.k,order,w));
+}
+function pick(k,order,w){
+  if(locked)return;locked=true;
+  const ok=order[k][1];
+  document.querySelectorAll(".opt").forEach((b,n)=>{b.disabled=true;if(order[n][1])b.classList.add("ok");else if(n===k)b.classList.add("no")});
+  if(ok)right++;else missed.push(deck[i]);
+  $("score").textContent=`${right} correct`;
+  const last=i===deck.length-1;
+  $("fb").innerHTML=`<div class="why"><b class="${ok?"g":"r"}">${ok?"Correct.":"Not quite."}</b> ${w}</div><button class="btn" id="nx">${last?"See results":"Next question"}</button>`;
+  $("nx").onclick=()=>{i++;show();window.scrollTo(0,0)};
+  $("nx").scrollIntoView({block:"nearest",behavior:"smooth"});
+}
+function finish(){
+  $("bar").style.width="100%";
+  const p=Math.round(right/deck.length*100);
+  $("main").innerHTML=`<div class="done"><big>${right}/${deck.length}</big>${p}% correct</div>${missed.length?`<button class="btn" id="rm">Retry ${missed.length} missed</button>`:""}<button class="btn alt" id="ag">Restart this set</button>`;
+  if(missed.length)$("rm").onclick=()=>start(missed.slice());
+  $("ag").onclick=()=>start();
+}
+start();
+</script>
+</body>
+</html>
